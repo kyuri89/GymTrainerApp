@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, TextInput, TouchableWithoutFeedback } from 'react-native';
 import { Exercise, BodyPart, UserWeights, HPSType } from '../types/workout';
 import { WeightSettingsModal } from './WeightSettingsModal';
 import { calculateHPSWeight, getTodaysHPSType, getHPSTypeLabel } from '../utils/hpsCalculator';
@@ -39,6 +39,9 @@ export const WorkoutDisplay: React.FC<WorkoutDisplayProps> = ({
   const [hpsMode, setHpsMode] = useState(!!selectedHPSType || !!todayHPSType);
   const [selectedWorkoutType, setSelectedWorkoutType] = useState<HPSType>(todayHPSType || HPSType.H);
   const [selectedExercises, setSelectedExercises] = useState<string[]>(exercises.map(ex => ex.id));
+  const [exerciseWeights, setExerciseWeights] = useState<{[key: string]: number}>({});
+  const [exerciseSets, setExerciseSets] = useState<{[key: string]: number}>({});
+  const [exerciseReps, setExerciseReps] = useState<{[key: string]: string}>({});
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
@@ -68,6 +71,7 @@ export const WorkoutDisplay: React.FC<WorkoutDisplayProps> = ({
           !isSelected && styles.unselectedCard
         ]}
         onPress={() => toggleExerciseSelection(item.id)}
+        activeOpacity={0.7}
       >
         <View style={styles.exerciseHeader}>
           <View style={styles.exerciseInfo}>
@@ -137,6 +141,66 @@ export const WorkoutDisplay: React.FC<WorkoutDisplayProps> = ({
             )}
           </View>
         )}
+        
+        {/* 実際の重量・セット・回数入力 */}
+        {isSelected && (
+          <TouchableWithoutFeedback>
+            <View style={styles.actualWorkoutSection}>
+              <Text style={styles.actualWorkoutTitle}>実際の記録</Text>
+              <View style={styles.actualInputsRow}>
+                {item.hasWeight && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>重量 (kg)</Text>
+                    <TextInput
+                      style={styles.weightInput}
+                      value={exerciseWeights[item.id]?.toString() || ''}
+                      onChangeText={(text) => {
+                        // 数字以外の文字を除去して数値として処理
+                        const numericText = text.replace(/[^\d.]/g, '');
+                        const weight = parseFloat(numericText) || 0;
+                        setExerciseWeights(prev => ({...prev, [item.id]: weight}));
+                      }}
+                      placeholder={hpsCalculation ? hpsCalculation.recommendedWeight.toString() : '0'}
+                      keyboardType="default"
+                      autoComplete="off"
+                      autoCorrect={false}
+                    />
+                  </View>
+                )}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>セット数</Text>
+                  <TextInput
+                    style={styles.setInput}
+                    value={exerciseSets[item.id]?.toString() || ''}
+                    onChangeText={(text) => {
+                      // 数字以外の文字を除去して整数として処理
+                      const numericText = text.replace(/[^\d]/g, '');
+                      const sets = parseInt(numericText) || 0;
+                      setExerciseSets(prev => ({...prev, [item.id]: sets}));
+                    }}
+                    placeholder={item.sets.toString()}
+                    keyboardType="default"
+                    autoComplete="off"
+                    autoCorrect={false}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>回数</Text>
+                  <TextInput
+                    style={styles.repsInput}
+                    value={exerciseReps[item.id] || ''}
+                    onChangeText={(text) => {
+                      setExerciseReps(prev => ({...prev, [item.id]: text}));
+                    }}
+                    placeholder={item.reps}
+                    autoComplete="off"
+                    autoCorrect={false}
+                  />
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        )}
       </TouchableOpacity>
     );
   };
@@ -163,12 +227,19 @@ export const WorkoutDisplay: React.FC<WorkoutDisplayProps> = ({
       return;
     }
     
+    const exercisesWithActualData = selectedExercisesList.map(exercise => ({
+      ...exercise,
+      actualWeight: exercise.hasWeight ? exerciseWeights[exercise.id] : undefined,
+      actualSets: exerciseSets[exercise.id] || exercise.sets,
+      actualReps: exerciseReps[exercise.id] || exercise.reps,
+    }));
+
     const session = {
       id: `${formatDate(workoutDate)}-${bodyPart}`,
       date: formatDate(workoutDate),
       bodyParts: [bodyPart],
       hpsType: selectedWorkoutType,
-      exercises: selectedExercisesList,
+      exercises: exercisesWithActualData,
       completed: true,
       duration: Math.round(totalTime)
     };
@@ -272,12 +343,19 @@ export const WorkoutDisplay: React.FC<WorkoutDisplayProps> = ({
         <TouchableOpacity
           style={[styles.completeButton, styles.addMoreButton]}
           onPress={() => {
+            const exercisesWithActualData = selectedExercisesList.map(exercise => ({
+              ...exercise,
+              actualWeight: exercise.hasWeight ? exerciseWeights[exercise.id] : undefined,
+              actualSets: exerciseSets[exercise.id] || exercise.sets,
+              actualReps: exerciseReps[exercise.id] || exercise.reps,
+            }));
+
             saveWorkoutSession({
               id: `${formatDate(workoutDate)}-${bodyPart}`,
               date: formatDate(workoutDate),
               bodyParts: [bodyPart],
               hpsType: selectedWorkoutType,
-              exercises: selectedExercisesList,
+              exercises: exercisesWithActualData,
               completed: false,
               duration: Math.round(totalTime)
             });
@@ -619,5 +697,59 @@ const styles = StyleSheet.create({
   },
   unselectedText: {
     color: '#999',
+  },
+  actualWorkoutSection: {
+    backgroundColor: '#f0f8ff',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  actualWorkoutTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  actualInputsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inputGroup: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  weightInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  setInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  repsInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

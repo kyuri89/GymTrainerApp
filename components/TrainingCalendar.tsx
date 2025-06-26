@@ -59,9 +59,15 @@ export const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ onDateSelect
       [HPSType.S]: monthSessions.filter(s => s.hpsType === HPSType.S).length,
     };
 
+    // 重量記録のある種目数を計算
+    const weightExercisesCount = monthSessions.reduce((count, session) => {
+      return count + session.exercises.filter(ex => ex.hasWeight && ex.actualWeight).length;
+    }, 0);
+
     return {
       total: monthSessions.length,
-      hpsCount
+      hpsCount,
+      weightExercisesCount
     };
   };
 
@@ -104,6 +110,10 @@ export const TrainingCalendar: React.FC<TrainingCalendarProps> = ({ onDateSelect
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: '#ef4444' }]}>{stats.hpsCount[HPSType.S]}</Text>
             <Text style={styles.statLabel}>筋力 (S)</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: '#8b5cf6' }]}>{stats.weightExercisesCount}</Text>
+            <Text style={styles.statLabel}>重量記録</Text>
           </View>
         </View>
       </View>

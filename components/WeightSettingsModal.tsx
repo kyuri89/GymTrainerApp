@@ -38,13 +38,15 @@ export const WeightSettingsModal: React.FC<WeightSettingsModalProps> = ({
   const weightExercises = exercises.filter(ex => ex.hasWeight);
 
   const handleWeightChange = (exerciseName: string, weight: string) => {
-    const numWeight = parseFloat(weight);
+    // 数字以外の文字を除去して数値として処理
+    const numericText = weight.replace(/[^\d.]/g, '');
+    const numWeight = parseFloat(numericText);
     if (!isNaN(numWeight) && numWeight > 0) {
       setWeights(prev => ({
         ...prev,
         [exerciseName]: numWeight
       }));
-    } else if (weight === '') {
+    } else if (numericText === '') {
       setWeights(prev => {
         const newWeights = { ...prev };
         delete newWeights[exerciseName];
@@ -67,8 +69,10 @@ export const WeightSettingsModal: React.FC<WeightSettingsModalProps> = ({
           value={weights[item.name]?.toString() || ''}
           onChangeText={(text) => handleWeightChange(item.name, text)}
           placeholder="0"
-          keyboardType="numeric"
+          keyboardType="default"
           placeholderTextColor="#999"
+          autoComplete="off"
+          autoCorrect={false}
         />
         <Text style={styles.kgLabel}>kg</Text>
       </View>

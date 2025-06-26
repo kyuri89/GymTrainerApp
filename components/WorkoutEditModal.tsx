@@ -185,7 +185,10 @@ export const WorkoutEditModal: React.FC<WorkoutEditModalProps> = ({
                     styles.exerciseDetails,
                     !selectedExercises.includes(exercise.id) && styles.unselectedText
                   ]}>
-                    {exercise.sets}セット × {exercise.reps}回
+                    {exercise.actualSets || exercise.sets}セット × {exercise.actualReps || exercise.reps}回
+                    {exercise.hasWeight && exercise.actualWeight && (
+                      <Text style={styles.weightText}> | {exercise.actualWeight}kg</Text>
+                    )}
                   </Text>
                 </View>
                 <View style={[
@@ -340,5 +343,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  weightText: {
+    fontWeight: 'bold',
+    color: '#007AFF',
   },
 });

@@ -9,6 +9,9 @@ export interface Exercise {
   restTime: number; // seconds
   hasWeight: boolean; // 重量を扱うエクササイズかどうか
   hpsType?: HPSType; // HPSトレーニングのタイプ
+  actualWeight?: number; // 実際に使用した重量（記録用）
+  actualSets?: number; // 実際に行ったセット数
+  actualReps?: string; // 実際に行った回数
 }
 
 export enum BodyPart {
